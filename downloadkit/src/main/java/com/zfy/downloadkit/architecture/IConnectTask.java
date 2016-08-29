@@ -13,18 +13,19 @@ public interface IConnectTask extends Runnable {
     * */
     interface onConnectListener{
 
-        void onConnecting();
+        void onConnecting(); //DownloadStatus.STATUS_CONNECTING run方法一进去,回调
 
-        void onConnected(long time, long length, boolean isAcceptRanges);
+        void onConnected(long time, long length, boolean isAcceptRanges); // DownloadStatus.STATUS_CONNECTED;回调
 
-        void onConnectPaused();
+        void onConnectPaused(); //DownloadStatus.STATUS_PAUSED连接异常时回调
 
-        void onConnectCanceled();
+        void onConnectCanceled();//DownloadStatus.STATUS_CANCELED连接异常时回调
 
-        void onConnectFailed(DownloadException e);
+        void onConnectFailed(DownloadException e); //DownloadStatus.STATUS_FAILED;连接异常时回调
     }
 
     void pause();
+
 
     void cancel();
 

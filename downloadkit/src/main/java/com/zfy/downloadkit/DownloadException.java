@@ -5,9 +5,9 @@ package com.zfy.downloadkit;
  * Created by zfy on 2016/8/27.
  */
 public class DownloadException extends Exception {
-
-    private int errorCode;
     private String errorMessage;
+    private int errorCode;
+
 
     public DownloadException() {
     }
@@ -17,9 +17,10 @@ public class DownloadException extends Exception {
         this.errorMessage = detailMessage;
     }
 
-    public DownloadException(int errorCode, String errorMessage) {
+    public DownloadException(int errorCode, String detailMessage) {
+        super(detailMessage);
         this.errorCode = errorCode;
-        this.errorMessage = errorMessage;
+        this.errorMessage = detailMessage;
     }
 
     public DownloadException(int errorCode, Throwable throwable) {
@@ -32,23 +33,14 @@ public class DownloadException extends Exception {
         this.errorMessage = detailMessage;
     }
 
-
-    public DownloadException(Throwable throwable, int errorCode, String errorMessage) {
-        super(throwable);
+    public DownloadException(int errorCode, String detailMessage, Throwable throwable) {
+        super(detailMessage, throwable);
         this.errorCode = errorCode;
-        this.errorMessage = errorMessage;
+        this.errorMessage = detailMessage;
     }
 
     public DownloadException(Throwable throwable) {
         super(throwable);
-    }
-
-    public int getErrorCode() {
-        return errorCode;
-    }
-
-    public void setErrorCode(int errorCode) {
-        this.errorCode = errorCode;
     }
 
     public String getErrorMessage() {
@@ -57,5 +49,13 @@ public class DownloadException extends Exception {
 
     public void setErrorMessage(String errorMessage) {
         this.errorMessage = errorMessage;
+    }
+
+    public int getErrorCode() {
+        return errorCode;
+    }
+
+    public void setErrorCode(int errorCode) {
+        this.errorCode = errorCode;
     }
 }

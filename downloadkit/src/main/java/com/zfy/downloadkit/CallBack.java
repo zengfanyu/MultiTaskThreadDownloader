@@ -1,5 +1,7 @@
 package com.zfy.downloadkit;
 
+import com.zfy.downloadkit.core_architecture_Impl.ConnectTaskImpl;
+
 import java.net.HttpURLConnection;
 
 /**
@@ -11,50 +13,53 @@ public interface CallBack {
     void onStart();
 
     /**
-     *<p> 被ConnectTaskImpl 类回调的第一个方法
+     *<p> This will be the first method called by {@link ConnectTaskImpl}
      */
     void onConnecting();
 
 
     /**
-     * <p>如果被ConnectTaskImpl成功的连接上服务器,此方法就会被回调
-     * 如果没有,DownloadException就会被回调
+     * <p>if {@link ConnectTaskImpl} is successfully connected with the http/https server,
+     * this method will be invoked.
      *
-     * @param total 文件的总长度 {@link HttpURLConnection#getContentLength()}
-     * @param isRangeSupport 标记是否断点续存,即从pause的地方重新开始下载
+     * @param total The length of the file {@link HttpURLConnection#getContentLength()}
+     * @param isRangeSupport Indicate whether download can be resumed from where it paused.
+     *                       See {@link ConnectTaskImpl#run()}.If the value of http header field
+     *                       {@code Accept-Ranges} is {@code bytes} the value of  isRangeSupport is
+     *                       {@code true} else {@code false}
      */
     void onConnected(long total, boolean isRangeSupport);
 
     /**
-     * <p>正在下载的回调
+     * <p>Progress callback
      *
-     * @param finished 已经下载的文件的长度
-     * @param total 文件的总长度 和 {@link CallBack#onConnected(long, boolean)}中参数相同
-     * @param progress 下载的进度 (finished/total)*100
+     * @param finished the downloaded length of the file
+     * @param total he total length of the file same value with method {@link CallBack#onConnected(long, boolean)}  }
+     * @param progress the percent of progress (finished/total)*100
      */
     void onProgress(long finished, long total, int progress);
 
     /**
-     * <p>完成下载的回调
+     * <p>download complete
      */
     void onCompleted();
 
     /**
-     * <p>如果成功调用DownloadManager的pause(string),或者DownloadManager的pauseAll()方法
-     * 此方法就会被调用
+     * <p>if you invoke {@link DownloadManager#pause(String)} or {@link DownloadManager#pauseAll()}
+     * this method will be invoke if the downloading task is successfully paused.
      */
     void onDownloadPaused();
 
     /**
-     *<p>如果成功调用DownloadManager的cancel(string),或者DownloadManager的cancelAll()方法
-     * 此方法就会被调用
+     *<p>if you invoke {@link DownloadManager#cancel(String)} or {@link DownloadManager#cancelAll()}
+     * this method will be invoke if the downloading task is successfully canceled.
      */
     void onDownloadCanceled();
 
     /**
-     * <p>下载失败或者是出现异常,回调此方法
+     * <p>download fail or exception callback
      *
-     * @param e 下载异常
+     * @param e download exception
      */
     void onFailed(DownloadException e);
 

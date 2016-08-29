@@ -32,8 +32,8 @@ public class DownloadStatusDeliveryImpl implements IDownloadStatusDelivery {
     }
 
     private class DownloadStatusDeliveryRunnable implements Runnable {
-        private DownloadStatus mDownloadStatus;
-        private CallBack mCallBack;
+        private final DownloadStatus mDownloadStatus;
+        private final CallBack mCallBack;
 
 
         public DownloadStatusDeliveryRunnable(DownloadStatus status) {
@@ -53,7 +53,7 @@ public class DownloadStatusDeliveryImpl implements IDownloadStatusDelivery {
                 case DownloadStatus.STATUS_PROGRESS:
                     mCallBack.onProgress(mDownloadStatus.getFinished(),mDownloadStatus.getTotal(),mDownloadStatus.getPercent());
                     break;
-                case DownloadStatus.STATUS_PAUSE:
+                case DownloadStatus.STATUS_PAUSED:
                     mCallBack.onDownloadPaused();
                     break;
                 case DownloadStatus.STATUS_CANCELED:

@@ -80,7 +80,7 @@ public class DownloadResponseImpl implements IDownloadResponse {
 
     @Override
     public void onDownloadPaused() {
-        mDownloadStatus.setStatus(DownloadStatus.STATUS_PAUSE);
+        mDownloadStatus.setStatus(DownloadStatus.STATUS_PAUSED);
         mDelivery.post(mDownloadStatus);
 
 

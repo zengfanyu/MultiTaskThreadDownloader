@@ -32,7 +32,7 @@ public class DownloadStatus {
     /*
     * 6.暂停下载的状态码
     * */
-    public static final int STATUS_PAUSE = 6666;
+    public static final int STATUS_PAUSED = 6666;
     /*
     * 7.取消下载的状态码
     * */

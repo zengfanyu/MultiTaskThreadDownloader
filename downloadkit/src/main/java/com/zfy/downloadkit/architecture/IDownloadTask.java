@@ -1,5 +1,7 @@
 package com.zfy.downloadkit.architecture;
 
+import com.zfy.downloadkit.DownloadException;
+
 /**
  * 下载任务的接口
  * Created by zfy on 2016/8/27.
@@ -8,7 +10,7 @@ public interface IDownloadTask extends Runnable {
 
     interface onDownloadListener {
 
-//        void onDownloadConnecting();
+        void onDownloadConnecting();
 
         void onDownloadProgress(long finished, long length);
 
@@ -18,7 +20,7 @@ public interface IDownloadTask extends Runnable {
 
         void onDownloadCanceled();
 
-        void onDownloadFailed();
+        void onDownloadFailed(DownloadException e);
 
 
     }
@@ -29,7 +31,7 @@ public interface IDownloadTask extends Runnable {
 
     boolean isDownloading();
 
-    boolean isComplete();
+    boolean isCompleted();
 
     boolean isPaused();
 
