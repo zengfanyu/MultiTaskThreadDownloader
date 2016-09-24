@@ -18,10 +18,10 @@ import java.util.List;
 import java.util.concurrent.Executor;
 
 /**
- * $desc
+ * 建造者模式中的BuilderImpl
  * Created by zfy on 2016/8/29.
  */
-public class DownloaderImpl implements IDownloader,IDownloadTask.onDownloadListener,IConnectTask.onConnectListener {
+public class DownloaderImpl implements IDownloader, IDownloadTask.onDownloadListener, IConnectTask.onConnectListener {
 
     private DownloadRequest mRequest;
     private IDownloadResponse mResponse;
@@ -33,7 +33,7 @@ public class DownloaderImpl implements IDownloader,IDownloadTask.onDownloadListe
     private int mStatus;
     private DownloadInfo mDownloadInfo;
     private IConnectTask mIConnectTask;
-    private List<IDownloadTask>mIDownloadTasks;
+    private List<IDownloadTask> mIDownloadTasks;
 
     //构造方法
     public DownloaderImpl(DownloadRequest request,
@@ -55,22 +55,22 @@ public class DownloaderImpl implements IDownloader,IDownloadTask.onDownloadListe
     }
 
     private void init() {
-        mDownloadInfo=new DownloadInfo(mRequest.getName().toString(),mRequest.getUrl(),mRequest.getFolder());
-        mIDownloadTasks=new LinkedList<>();
+        mDownloadInfo = new DownloadInfo(mRequest.getName().toString(), mRequest.getUrl(), mRequest.getFolder());
+        mIDownloadTasks = new LinkedList<>();
     }
 
 
     @Override
     public boolean isRunning() {
-        return mStatus== DownloadStatus.STATUS_STARTED
-                ||mStatus==DownloadStatus.STATUS_CONNECTING
-                ||mStatus==DownloadStatus.STATUS_CONNECTED
-                ||mStatus==DownloadStatus.STATUS_PROGRESS;
+        return mStatus == DownloadStatus.STATUS_STARTED
+                || mStatus == DownloadStatus.STATUS_CONNECTING
+                || mStatus == DownloadStatus.STATUS_CONNECTED
+                || mStatus == DownloadStatus.STATUS_PROGRESS;
     }
 
     @Override
     public void start() {
-        mStatus=DownloadStatus.STATUS_STARTED;
+        mStatus = DownloadStatus.STATUS_STARTED;
         mResponse.onStarted();
         mIConnectTask = new ConnectTaskImpl(mRequest.getUrl(), this);
         mExecutor.execute(mIConnectTask);
@@ -80,26 +80,26 @@ public class DownloaderImpl implements IDownloader,IDownloadTask.onDownloadListe
 
     @Override
     public void pause() {
-        if (mIConnectTask!=null){
+        if (mIConnectTask != null) {
             mIConnectTask.pause();
         }
-        for (IDownloadTask task:mIDownloadTasks){
+        for (IDownloadTask task : mIDownloadTasks) {
             task.pause();
         }
-        if (mStatus!=DownloadStatus.STATUS_PROGRESS){
+        if (mStatus != DownloadStatus.STATUS_PROGRESS) {
             onDownloadPaused();
         }
     }
 
     @Override
     public void cancel() {
-        if (mIConnectTask!=null){
+        if (mIConnectTask != null) {
             mIConnectTask.cancel();
         }
-        for (IDownloadTask task:mIDownloadTasks){
+        for (IDownloadTask task : mIDownloadTasks) {
             task.cancel();
         }
-        if (mStatus!=DownloadStatus.STATUS_PROGRESS){
+        if (mStatus != DownloadStatus.STATUS_PROGRESS) {
             onDownloadCanceled();
         }
 
@@ -109,52 +109,52 @@ public class DownloaderImpl implements IDownloader,IDownloadTask.onDownloadListe
     @Override
     public void onDestroy() {
         //回调OnDestroy接口 通知DownloadManager
-        mListener.onDestroyed(mTag,this);
+        mListener.onDestroyed(mTag, this);
     }
 
-    @Override
+    @Override //onConnectListener的回调
     public void onConnecting() {
-        mStatus=DownloadStatus.STATUS_CONNECTING;
+        mStatus = DownloadStatus.STATUS_CONNECTING;
         mResponse.onConnecting();
 
     }
 
-    @Override
+    @Override//onConnectListener的回调
     public void onConnected(long time, long length, boolean isAcceptRanges) {
-        if (mIConnectTask.isCanceled()){
+        if (mIConnectTask.isCanceled()) {
             //// despite connection is finished, the entire downloader is canceled
             onConnectCanceled();
-        }else {
-            mStatus=DownloadStatus.STATUS_CONNECTED;
-            mResponse.onConnected(time,length,isAcceptRanges);
+        } else {
+            mStatus = DownloadStatus.STATUS_CONNECTED;
+            mResponse.onConnected(time, length, isAcceptRanges);
 
             mDownloadInfo.setAcceptRanges(isAcceptRanges);
             mDownloadInfo.setLength(length);
-            download(length,isAcceptRanges);
+            download(length, isAcceptRanges);
         }
 
     }
 
-    @Override
+    @Override//onConnectListener的回调
     public void onConnectPaused() {
         onDownloadPaused();
 
     }
 
-    @Override
+    @Override//onConnectListener的回调
     public void onConnectCanceled() {
         //删除数据库中的数据
         deleteFromDB();
         //删除本地文件的数据
         deleteFile();
-        mStatus=DownloadStatus.STATUS_CANCELED;
+        mStatus = DownloadStatus.STATUS_CANCELED;
         mResponse.onConnectCanceled();
         onDestroy();
 
 
     }
 
-    @Override
+    @Override//onConnectListener的回调
     public void onConnectFailed(DownloadException e) {
         if (mIConnectTask.isCanceled()) {
             // despite connection is failed, the entire downloader is canceled
@@ -170,21 +170,17 @@ public class DownloaderImpl implements IDownloader,IDownloadTask.onDownloadListe
 
     }
 
-    @Override
-    public void onDownloadConnecting() {
 
-    }
-
-    @Override
+    @Override//onDownloadListener的回调
     public void onDownloadProgress(long finished, long length) {
         //calculate percent
-        final int percent= (int) (finished*100/length);
-        mResponse.onDownloadProgress(finished,length,percent);
+        final int percent = (int) (finished * 100 / length);
+        mResponse.onDownloadProgress(finished, length, percent);
 
 
     }
 
-    @Override
+    @Override//onDownloadListener的回调
     public void onDownloadCompleted() {
         if (isAllComplete()) {
             deleteFromDB();
@@ -195,7 +191,7 @@ public class DownloaderImpl implements IDownloader,IDownloadTask.onDownloadListe
 
     }
 
-    @Override
+    @Override//onDownloadListener的回调
     public void onDownloadPaused() {
         if (isAllPaused()) {
             mStatus = DownloadStatus.STATUS_PAUSED;
@@ -205,10 +201,12 @@ public class DownloaderImpl implements IDownloader,IDownloadTask.onDownloadListe
 
     }
 
-    @Override
+    @Override//onDownloadListener的回调
     public void onDownloadCanceled() {
         if (isAllCanceled()) {
+            //删除数据库中的ThreadInfo
             deleteFromDB();
+            //删除本地已经下载的文件
             deleteFile();
             mStatus = DownloadStatus.STATUS_CANCELED;
             mResponse.onDownloadCanceled();
@@ -217,7 +215,7 @@ public class DownloaderImpl implements IDownloader,IDownloadTask.onDownloadListe
 
     }
 
-    @Override
+    @Override//onDownloadListener的回调
     public void onDownloadFailed(DownloadException e) {
         if (isAllFailed()) {
             mStatus = DownloadStatus.STATUS_FAILED;
@@ -247,8 +245,8 @@ public class DownloaderImpl implements IDownloader,IDownloadTask.onDownloadListe
     * Method to delete local file
     * */
     private void deleteFile() {
-        File file=new File(mDownloadInfo.getDir(),mDownloadInfo.getName());
-        if (file.exists()&&file.isFile()){
+        File file = new File(mDownloadInfo.getDir(), mDownloadInfo.getName());
+        if (file.exists() && file.isFile()) {
             file.delete();
         }
     }
@@ -262,32 +260,32 @@ public class DownloaderImpl implements IDownloader,IDownloadTask.onDownloadListe
     }
 
     private void download(long length, boolean isAcceptRanges) {
-        mStatus=DownloadStatus.STATUS_PROGRESS;
-        initDownloadTasks(length,isAcceptRanges);
+        mStatus = DownloadStatus.STATUS_PROGRESS;
+        initDownloadTasks(length, isAcceptRanges);
         //start tasks
-        for (IDownloadTask task:mIDownloadTasks){
+        for (IDownloadTask task : mIDownloadTasks) {
             mExecutor.execute(task);
         }
     }
 
     private void initDownloadTasks(long length, boolean isAcceptRanges) {
         mIDownloadTasks.clear();
-        if (isAcceptRanges){
-            List<ThreadInfo>threadInfos=getMultiThreadInfos(length);
+        if (isAcceptRanges) {
+            List<ThreadInfo> threadInfos = getMultiThreadInfos(length);
             //初始化finished
-            int finished=0;
-            for (ThreadInfo info:threadInfos){
-                finished+=info.getFinished();
+            int finished = 0;
+            for (ThreadInfo info : threadInfos) {
+                finished += info.getFinished();
             }
             mDownloadInfo.setFinished(finished);
 
-            for (ThreadInfo info:threadInfos){
-               mIDownloadTasks.add(new MultiDownloadTask(mDownloadInfo,info,mDatabaseManager,this));
+            for (ThreadInfo info : threadInfos) {
+                mIDownloadTasks.add(new MultiDownloadTask(mDownloadInfo, info, mDatabaseManager, this));
             }
 
-        }else {
-           ThreadInfo info= getSingleThreadInfo();
-            mIDownloadTasks.add(new SingleDownloadTask(mDownloadInfo,info,this));
+        } else {
+            ThreadInfo info = getSingleThreadInfo();
+            mIDownloadTasks.add(new SingleDownloadTask(mDownloadInfo, info, this));
 
         }
 
@@ -324,8 +322,6 @@ public class DownloaderImpl implements IDownloader,IDownloadTask.onDownloadListe
 
 
     }
-
-
 
 
 }

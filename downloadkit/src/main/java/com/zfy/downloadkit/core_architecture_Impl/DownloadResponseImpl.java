@@ -7,6 +7,7 @@ import com.zfy.downloadkit.architecture.IDownloadResponse;
 import com.zfy.downloadkit.architecture.IDownloadStatusDelivery;
 
 /**
+ * 建造者模式中的BuilderImpl
  * IDownloadResponse接口 的实现类
  * Created by zfy on 2016/8/27.
  */

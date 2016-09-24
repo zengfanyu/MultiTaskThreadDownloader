@@ -43,10 +43,24 @@ public class DownloadStatus {
     public static final int STATUS_FAILED = 8888;
 
 
-    private int status;
-    private DownloadException exception;
-    private CallBack callBack;
 
+
+
+    /*
+    * 下载状态
+    * */
+    private int status;
+    /*
+    * 下载异常
+    * */
+    private DownloadException exception;
+    /*
+    * 下载回调
+    * */
+    private CallBack callBack;
+    /*
+    * 连接时间
+    * */
     private long time;
     /*
     * 文件总长度

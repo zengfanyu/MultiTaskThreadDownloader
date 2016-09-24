@@ -16,6 +16,9 @@ public class DownloadInfo {
     private boolean acceptRanges;
     private int status;
 
+    public DownloadInfo() {
+    }
+
     public DownloadInfo(String name, String url, File dir) {
         this.name = name;
         this.url = url;

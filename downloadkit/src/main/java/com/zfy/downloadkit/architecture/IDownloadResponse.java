@@ -3,6 +3,7 @@ package com.zfy.downloadkit.architecture;
 import com.zfy.downloadkit.DownloadException;
 
 /**
+ * 建筑者模式中的IBuilder建筑抽象类
  * 下载的回应信息
  * Created by zfy on 2016/8/27.
  */

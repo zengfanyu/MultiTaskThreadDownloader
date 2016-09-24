@@ -3,6 +3,7 @@ package com.zfy.downloadkit.architecture;
 import com.zfy.downloadkit.DownloadException;
 
 /**
+ * 建筑者模式中的IBuilder建筑抽象类
  * `连接任务的接口
  * Created by zfy on 2016/8/27.
  */
@@ -25,7 +26,6 @@ public interface IConnectTask extends Runnable {
     }
 
     void pause();
-
 
     void cancel();
 

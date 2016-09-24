@@ -5,7 +5,7 @@ import com.zfy.downloadkit.core_architecture_Impl.ConnectTaskImpl;
 import java.net.HttpURLConnection;
 
 /**
- * $desc
+ *
  * Created by zfy on 2016/8/27.
  */
 public interface CallBack {

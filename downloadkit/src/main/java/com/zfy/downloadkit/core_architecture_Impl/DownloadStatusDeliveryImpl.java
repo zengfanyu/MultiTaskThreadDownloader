@@ -9,6 +9,7 @@ import com.zfy.downloadkit.architecture.IDownloadStatusDelivery;
 import java.util.concurrent.Executor;
 
 /**
+ * 建造者模式中的BuilderImpl
  * IDownloadStatusDelivery接口 的实现类
  * Created by zfy on 2016/8/27.
  */

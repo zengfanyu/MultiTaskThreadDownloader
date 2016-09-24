@@ -22,6 +22,7 @@ import java.net.URL;
 import java.util.Map;
 
 /**
+ * 建造者模式中的BuilderImpl
  * IDownloadTask接口的 实现类
  * Created by zfy on 2016/8/29.
  */
@@ -32,54 +33,42 @@ public abstract class DownloadTaskImpl implements IDownloadTask {
     private final onDownloadListener mOnDownloadListener;
 
     private volatile int mStatus;
-
     private volatile int mCommend = 0;
 
     public DownloadTaskImpl(DownloadInfo downloadInfo, ThreadInfo threadInfo, onDownloadListener onDownloadListener) {
         mDownloadInfo = downloadInfo;
         mThreadInfo = threadInfo;
         mOnDownloadListener = onDownloadListener;
-
         this.mTag=getTag();
-
         if (TextUtils.isEmpty(mTag)){
             mTag=this.getClass().getSimpleName();
         }
-
     }
 
     @Override
     public void cancel() {
         mStatus= DownloadStatus.STATUS_CANCELED;
-
     }
-
     @Override
     public void pause() {
         mStatus= DownloadStatus.STATUS_PAUSED;
-
     }
-
     @Override
     public boolean isDownloading() {
         return mStatus==DownloadStatus.STATUS_PROGRESS;
     }
-
     @Override
     public boolean isCompleted() {
         return mStatus==DownloadStatus.STATUS_COMPLETED;
     }
-
     @Override
     public boolean isPaused() {
         return mStatus==DownloadStatus.STATUS_PAUSED;
     }
-
     @Override
     public boolean isCanceled() {
         return mStatus==DownloadStatus.STATUS_CANCELED;
     }
-
     @Override
     public boolean isFailed() {
         return mStatus==DownloadStatus.STATUS_FAILED;
@@ -93,6 +82,7 @@ public abstract class DownloadTaskImpl implements IDownloadTask {
             insertIntoDB(mThreadInfo);
             //执行下载操作
             executeDownload();
+
             synchronized (mOnDownloadListener){
                 mStatus=DownloadStatus.STATUS_COMPLETED;
                 //回调下载完成的方法
@@ -102,6 +92,107 @@ public abstract class DownloadTaskImpl implements IDownloadTask {
             handleDownloadException(e);
         }
 
+    }
+
+    private void executeDownload()throws DownloadException{
+        final URL url;
+        try {
+            url=new URL(mThreadInfo.getUrl());
+        } catch (MalformedURLException e) {
+            throw new DownloadException(DownloadStatus.STATUS_FAILED,"worse url",e);
+        }
+        HttpURLConnection connection=null;
+        try {
+            connection= (HttpURLConnection) url.openConnection();
+            connection.setConnectTimeout(Constants.HTTP.CONNECT_TIME_OUT);
+            connection.setReadTimeout(Constants.HTTP.READ_TIME_OUT);
+            connection.setRequestMethod(Constants.HTTP.GET);
+            //getHttpHeaders(mThreadInfo) 抽象方法,由子类实现
+            //设置每一个线程的下载起始位置和结束为止
+            setHttpHeader(getHttpHeaders(mThreadInfo), connection);
+            final int responseCode = connection.getResponseCode();
+            //getResponseCode()抽象方法,由子类实现
+            if (responseCode== getResponseCode()) {
+                transferData(connection);
+            }else {
+                throw new DownloadException(DownloadStatus.STATUS_FAILED,"UnSupported response code:"+responseCode);
+            }
+        }  catch (ProtocolException e) {
+            throw new DownloadException(DownloadStatus.STATUS_FAILED, "Protocol error", e);
+        } catch (IOException e) {
+            throw new DownloadException(DownloadStatus.STATUS_FAILED, "IO error", e);
+        } finally {
+            if (connection != null) {
+                connection.disconnect();
+            }
+        }
+
+
+    }
+
+    private void transferData(HttpURLConnection connection) throws DownloadException {
+        InputStream inputStream=null;
+        RandomAccessFile raf=null;
+        try {
+            try {
+                inputStream=connection.getInputStream();
+
+            } catch (IOException e) {
+                throw new DownloadException(DownloadStatus.STATUS_FAILED, "HTTP get inputStream error", e);
+            }
+            final long offset=mThreadInfo.getStart()+mThreadInfo.getFinished();
+            try {
+                raf=getFile(mDownloadInfo.getDir(),mDownloadInfo.getName(),offset);
+            } catch (IOException e) {
+                throw new DownloadException(DownloadStatus.STATUS_FAILED,"File error",e);
+            }
+            transferData(inputStream,raf);
+        } finally {
+            try {
+                IOCloseUtils.close(inputStream);
+                IOCloseUtils.close(raf);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private void transferData(InputStream inputStream, RandomAccessFile raf)throws DownloadException{
+        final byte[]buffer=new byte[1024*8];
+        while(true){
+            //检查有没有被取消或者暂停
+            checkPausedOrCanceled();
+            int len=-1;
+            try {
+                len=inputStream.read(buffer);
+                if (len==-1) {
+                    break; //从流中读取数据结束后跳出循环
+                }
+                raf.write(buffer,0,len);
+                //每当往本地文件中写一次,就要改变改变ThreadInfo的Finished信息(已经完成的下载量=上次已经完成的下载量+len)
+                mThreadInfo.setFinished(mThreadInfo.getFinished()+len);
+                synchronized (mOnDownloadListener){
+                    mDownloadInfo.setFinished(mDownloadInfo.getFinished()+len);
+                    //回调
+                    mOnDownloadListener.onDownloadProgress(mDownloadInfo.getFinished(),mDownloadInfo.getLength());
+                }
+            } catch (IOException e) {
+                updateDB(mThreadInfo);
+                throw new DownloadException(DownloadStatus.STATUS_FAILED,e);
+            }
+        }
+
+    }
+
+    private void checkPausedOrCanceled() throws DownloadException {
+        if (mCommend == DownloadStatus.STATUS_CANCELED) {
+            // cancel
+            throw new DownloadException(DownloadStatus.STATUS_CANCELED, "Download canceled!");
+        } else if (mCommend == DownloadStatus.STATUS_PAUSED) {
+            // pause
+            updateDB(mThreadInfo);
+            throw new DownloadException(DownloadStatus.STATUS_PAUSED, "Download paused!");
+        }
     }
 
     private void handleDownloadException(DownloadException e) {
@@ -130,114 +221,6 @@ public abstract class DownloadTaskImpl implements IDownloadTask {
 
     }
 
-    private void executeDownload()throws DownloadException{
-        final URL url;
-
-        try {
-            url=new URL(mThreadInfo.getUrl());
-        } catch (MalformedURLException e) {
-            throw new DownloadException(DownloadStatus.STATUS_FAILED,"worse url",e);
-        }
-
-        HttpURLConnection connection=null;
-
-        try {
-            connection= (HttpURLConnection) url.openConnection();
-            connection.setConnectTimeout(Constants.HTTP.CONNECT_TIME_OUT);
-            connection.setReadTimeout(Constants.HTTP.READ_TIME_OUT);
-            connection.setRequestMethod(Constants.HTTP.GET);
-            //getHttpHeaders(mThreadInfo) 抽象方法,由子类实现
-            setHttpHeader(getHttpHeaders(mThreadInfo), connection);
-            final int responseCode = connection.getResponseCode();
-            //getResponseCode()抽象方法,由子类实现
-            if (responseCode== getResponseCode()) {
-                transferData(connection);
-            }else {
-                throw new DownloadException(DownloadStatus.STATUS_FAILED,"UnSupported response code:"+responseCode);
-            }
-        }  catch (ProtocolException e) {
-            throw new DownloadException(DownloadStatus.STATUS_FAILED, "Protocol error", e);
-        } catch (IOException e) {
-            throw new DownloadException(DownloadStatus.STATUS_FAILED, "IO error", e);
-        } finally {
-            if (connection != null) {
-                connection.disconnect();
-            }
-        }
-
-
-    }
-
-    private void transferData(HttpURLConnection connection) throws DownloadException {
-        InputStream inputStream=null;
-        RandomAccessFile raf=null;
-
-        try {
-            try {
-                inputStream=connection.getInputStream();
-
-            } catch (IOException e) {
-                throw new DownloadException(DownloadStatus.STATUS_FAILED, "HTTP get inputStream error", e);
-            }
-
-            final long offset=mThreadInfo.getStart()+mThreadInfo.getFinished();
-
-            try {
-                raf=getFile(mDownloadInfo.getDir(),mDownloadInfo.getName(),offset);
-            } catch (IOException e) {
-                throw new DownloadException(DownloadStatus.STATUS_FAILED,"File error",e);
-            }
-
-            transferData(inputStream,raf);
-        } finally {
-            try {
-                IOCloseUtils.close(inputStream);
-                IOCloseUtils.close(raf);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-
-        }
-
-    }
-
-    private void transferData(InputStream inputStream, RandomAccessFile raf)throws DownloadException{
-        final byte[]buffer=new byte[1024*8];
-        while(true){
-            checkPausedOrCanceled();
-            int len=-1;
-
-            try {
-                len=inputStream.read(buffer);
-                if (len==-1) {
-                    break;
-                }
-                raf.write(buffer,0,len);
-                mThreadInfo.setFinished(mThreadInfo.getFinished()+len);
-                synchronized (mOnDownloadListener){
-                    mDownloadInfo.setFinished(mDownloadInfo.getFinished()+len);
-                    //回调
-                    mOnDownloadListener.onDownloadProgress(mDownloadInfo.getFinished(),mDownloadInfo.getLength());
-                }
-            } catch (IOException e) {
-                updateDB(mThreadInfo);
-                throw new DownloadException(DownloadStatus.STATUS_FAILED,e);
-            }
-        }
-
-    }
-
-    private void checkPausedOrCanceled() throws DownloadException {
-        if (mCommend == DownloadStatus.STATUS_CANCELED) {
-            // cancel
-            throw new DownloadException(DownloadStatus.STATUS_CANCELED, "Download canceled!");
-        } else if (mCommend == DownloadStatus.STATUS_PAUSED) {
-            // pause
-            updateDB(mThreadInfo);
-            throw new DownloadException(DownloadStatus.STATUS_PAUSED, "Download paused!");
-        }
-    }
-
     private void setHttpHeader(Map<String, String> httpHeaders, HttpURLConnection connection) {
         if (httpHeaders!=null){
             for (String key:httpHeaders.keySet()){
@@ -256,5 +239,6 @@ public abstract class DownloadTaskImpl implements IDownloadTask {
     protected abstract Map<String,String> getHttpHeaders(ThreadInfo threadInfo);
 
     protected abstract void insertIntoDB(ThreadInfo threadInfo);
+
     protected abstract String getTag();
 }
